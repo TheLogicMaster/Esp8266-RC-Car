@@ -15,6 +15,7 @@
 #include <ESP8266mDNS.h>
 #include <vector>
 #include <Adafruit_NeoPixel.h>
+#include <DNSServer.h>
 
 #define NUMELEMENTS(x) (sizeof(x) / sizeof(x[0]))
 
@@ -430,6 +431,33 @@ int songMario[] = {
 
 };
 
+// https://musescore.com/user/206457/scores/1032696
+int songDragonBallSuper[] = {
+  NOTE_FS3, 2, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_FS4, -2, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_G3, -2,
+  NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_G3, -2, NOTE_B4, 8, NOTE_A4, 8, NOTE_B4, 8, NOTE_FS4, -2,
+  NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_FS4, -2, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_G3, -2,
+  NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_G3, -2, NOTE_B4, 8, NOTE_A4, 8, NOTE_B4, 4,
+  // Melody
+  NOTE_FS4, -2, NOTE_FS4, 4, NOTE_E4, 4, NOTE_D4, 4, NOTE_CS4, 4, NOTE_D4, 4, NOTE_B3, 1, REST, -4, 
+  NOTE_FS4, 8, NOTE_G4, 4, NOTE_A4, -4, NOTE_G4, 4, NOTE_FS4, 8, NOTE_E4, 4, NOTE_G4, -4, NOTE_FS4, 4, NOTE_E4, 8, NOTE_D4, 4, NOTE_D4, 1,
+  REST, 1, NOTE_A4, -2, NOTE_A4, 4, NOTE_E4, 4, NOTE_D4, 4, NOTE_CS4, 4, NOTE_D4, 4, NOTE_B3, 1, REST, 2, NOTE_FS4, 8, NOTE_G4, 4, NOTE_A4, -4, 
+  NOTE_G4, 4, NOTE_FS4, 8, NOTE_E4, 4, NOTE_G4, -4, NOTE_FS4, 4, NOTE_E4, 8, NOTE_D4, 4, NOTE_D4, 1, REST, -2, NOTE_A4, -4, NOTE_A4, 4,
+  NOTE_A4, 8, NOTE_A4, 4, NOTE_A4, -4, NOTE_G4, 4, NOTE_FS4, 8, NOTE_G4, -4, NOTE_A4, -1, REST, 4, 
+  NOTE_D4, 2, NOTE_C4, 2, NOTE_AS3, 2, NOTE_AS3, 2, NOTE_E4, 2, NOTE_D4, 2, NOTE_C4, 2, NOTE_D4, 4, REST, 4,
+  NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 8, NOTE_D4, 4, NOTE_D4, -4, NOTE_CS4, 4, REST, 4, NOTE_CS4, 4, REST, 4,
+  NOTE_CS4, 4, NOTE_CS4, 8, NOTE_CS4, 4, NOTE_CS4, 4, NOTE_CS4, 8, NOTE_D4, 2, NOTE_B3, 2,
+  NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 8, NOTE_CS4, -4, NOTE_B3, -1, NOTE_B3, 4, NOTE_CS4, 4, NOTE_D4, 2, NOTE_B3, 2, NOTE_CS4, 2, NOTE_D4, -4, REST, 8,
+  NOTE_D4, 2, NOTE_A4, 2, NOTE_FS4, 2, REST, 2, NOTE_D4, 4, NOTE_B3, 4, NOTE_CS4, 8, NOTE_D4, 4, REST, 8, 
+  NOTE_D4, 4, NOTE_B3, 4, NOTE_CS4, 8, NOTE_D4, 4, REST, 8, NOTE_AS4, 1, NOTE_CS4, 1, 
+  NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 8, NOTE_D4, 4, NOTE_D4, -4, NOTE_CS4, 4, REST, 4, NOTE_CS4, 4, REST, 4,
+  NOTE_CS4, 4, NOTE_CS4, 8, NOTE_CS4, 4, NOTE_CS4, 4, NOTE_CS4, 8, NOTE_D4, 2, NOTE_B3, 2,
+  NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 8, NOTE_CS4, -4, NOTE_B3, -1, NOTE_B3, 4, NOTE_CS4, 4, NOTE_D4, 4, NOTE_CS4, 4, NOTE_B3, 4, NOTE_D4, 4,
+  NOTE_CS4, 4, NOTE_CS4, 8, NOTE_CS4, -4, NOTE_D4, 8, NOTE_D4, 2, REST, 8, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_FS4, -2, 
+  NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_E4, -2, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_E4, -2, NOTE_B3, 8, NOTE_A4, 8, NOTE_B3, 8, NOTE_FS4, -1, 
+
+  NOTE_E3, -2 // Last note is cut off
+};
+
 const int LED_NUM = 10;
 Adafruit_NeoPixel strip(LED_NUM, D3, NEO_GRB + NEO_KHZ800);
 int rgbMode = 0;
@@ -447,15 +475,18 @@ unsigned long previousSongMillis;
 int noteIndex = 0;
 int buzzerPin = D2;
 
+IPAddress apIP(192, 168, 4, 1);
+IPAddress netMsk(255, 255, 255, 0); 
 const char* ssid     = "Super Cool Rover";
 const char* password = "123456789";
 FSInfo fs_info;
+DNSServer dnsServer;
 AsyncWebServer server(80);
 char bufferTemp[300];
 
 struct SONG {
   int *notes;
-  uint8 numNotes;
+  uint numNotes;
 };
 
 SONG songs[] = {
@@ -465,7 +496,8 @@ SONG songs[] = {
   {songKeyboardCat, NUMELEMENTS(songKeyboardCat)},
   {songTakeOnMe, NUMELEMENTS(songTakeOnMe)},
   {songPanther, NUMELEMENTS(songPanther)},
-  {songMario, NUMELEMENTS(songMario)}
+  {songMario, NUMELEMENTS(songMario)},
+  {songDragonBallSuper, NUMELEMENTS(songDragonBallSuper)}
 };
 
 void ShowInfo(void){
@@ -521,9 +553,14 @@ void setup(){
 
   Serial.print("Setting AP (Access Point)…");
   WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(apIP, apIP, netMsk);
   WiFi.softAP(ssid);
   //WiFi.softAP(ssid, password);
 
+  dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+  dnsServer.start(53, "*", apIP);
+  
+  delay(500);
   IPAddress IP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
   Serial.println(IP);
@@ -599,6 +636,12 @@ void setup(){
       }
     request->send_P(200, "text/plain", String("Recieved").c_str());
   });
+  server.on("/generate_204", HTTP_POST, [](AsyncWebServerRequest *request){
+    request->redirect("http://192.168.4.1");
+  });
+  server.on("/fwlink", HTTP_POST, [](AsyncWebServerRequest *request){
+    request->redirect("http://192.168.4.1");
+  });
   /*server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html, processor);
   });
@@ -613,7 +656,8 @@ void setup(){
   if (request->method() == HTTP_OPTIONS) {
     request->send(200);
   } else {
-    request->send(404);
+    request->redirect("http://192.168.4.1");
+    //request->send(404);
   }
 });
 
@@ -621,15 +665,15 @@ void setup(){
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
   server.begin();
 
-  /*if (MDNS.begin("esp8266")) {
+  if (MDNS.begin("rover")) {
     MDNS.addService("http", "tcp", 80);
     Serial.println("MDNS responder started");
     Serial.print("You can now connect to http://");
-    Serial.print("esp8266");
+    Serial.print("rover");
     Serial.println(".local");
   } else {
     Serial.println("MDNS responder failed to start");
-  }*/
+  }
 
   previousSongMillis = millis();
 }
@@ -674,12 +718,17 @@ void loop(){
     previousLEDMillis = currentMillis;
   }
 
-  // Music
+  // Music Todo: 
   if (songIndex != -1) {
     if (noteIndex == 0 || previousSongMillis + getDuration(noteIndex * 2 - 1) < currentMillis) {
       tone(buzzerPin, songs[songIndex].notes[noteIndex * 2], getDuration(noteIndex * 2 + 1) * 0.9);
       noteIndex++;
+      // Todo: prevent from cutting off last note
       if (noteIndex >= songs[songIndex].numNotes / 2) {
+        Serial.println("ended");
+          Serial.println(songIndex);
+          Serial.println(noteIndex);
+          Serial.println(songs[songIndex].numNotes);
         noteIndex = 0;
         if (!repeatSong) {
           songIndex = -1;
@@ -689,4 +738,6 @@ void loop(){
       previousSongMillis = currentMillis;
     }
   }  
+
+  dnsServer.processNextRequest();
 }

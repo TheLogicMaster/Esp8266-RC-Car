@@ -142,6 +142,10 @@ export default {
         {
           label: "Super Mario Bros",
           value: "6"
+        },
+        {
+          label: "Dragon Ball Super",
+          value: "7"
         }
       ]
     };
