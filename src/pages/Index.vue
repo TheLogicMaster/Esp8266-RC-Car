@@ -146,6 +146,10 @@ export default {
         {
           label: "Dragon Ball Super",
           value: "7"
+        },
+        {
+          label: "Spongebob Medley",
+          value: "8"
         }
       ]
     };

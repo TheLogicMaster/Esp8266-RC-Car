@@ -1,14 +1,3 @@
-/*********
-  Rui Santos
-  Complete project details at https://randomnerdtutorials.com/esp8266-nodemcu-access-point-ap-web-server/
-  
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files.
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-*********/
-
-// Import required libraries
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
@@ -109,6 +98,7 @@
 #define NOTE_D8  4699
 #define NOTE_DS8 4978
 #define REST 0
+#define TEMPO 1
 
 // notes of the moledy followed by the duration.
 // a 4 means a quarter note, 8 an eighteenth , 16 sixteenth, so on
@@ -433,10 +423,10 @@ int songMario[] = {
 
 // https://musescore.com/user/206457/scores/1032696
 int songDragonBallSuper[] = {
-  NOTE_FS3, 2, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_FS4, -2, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_G3, -2,
-  NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_G3, -2, NOTE_B4, 8, NOTE_A4, 8, NOTE_B4, 8, NOTE_FS4, -2,
-  NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_FS4, -2, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_G3, -2,
-  NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_G3, -2, NOTE_B4, 8, NOTE_A4, 8, NOTE_B4, 4,
+  NOTE_FS3, 2, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_FS4, 2, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_G3, 2,
+  NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_G3, 2, REST, 16, NOTE_B4, 8, NOTE_A4, 8, NOTE_B4, 8, NOTE_FS4, 2, REST, 16,
+  NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_FS4, 2, REST, 16, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_G3, 2, REST, 16,
+  NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_G3, 2, REST, 16, NOTE_B4, 8, NOTE_A4, 8, NOTE_B4, 4,
   // Melody
   NOTE_FS4, -2, NOTE_FS4, 4, NOTE_E4, 4, NOTE_D4, 4, NOTE_CS4, 4, NOTE_D4, 4, NOTE_B3, 1, REST, -4, 
   NOTE_FS4, 8, NOTE_G4, 4, NOTE_A4, -4, NOTE_G4, 4, NOTE_FS4, 8, NOTE_E4, 4, NOTE_G4, -4, NOTE_FS4, 4, NOTE_E4, 8, NOTE_D4, 4, NOTE_D4, 1,
@@ -447,15 +437,113 @@ int songDragonBallSuper[] = {
   NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 8, NOTE_D4, 4, NOTE_D4, -4, NOTE_CS4, 4, REST, 4, NOTE_CS4, 4, REST, 4,
   NOTE_CS4, 4, NOTE_CS4, 8, NOTE_CS4, 4, NOTE_CS4, 4, NOTE_CS4, 8, NOTE_D4, 2, NOTE_B3, 2,
   NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 8, NOTE_CS4, -4, NOTE_B3, -1, NOTE_B3, 4, NOTE_CS4, 4, NOTE_D4, 2, NOTE_B3, 2, NOTE_CS4, 2, NOTE_D4, -4, REST, 8,
-  NOTE_D4, 2, NOTE_A4, 2, NOTE_FS4, 2, REST, 2, NOTE_D4, 4, NOTE_B3, 4, NOTE_CS4, 8, NOTE_D4, 4, REST, 8, 
-  NOTE_D4, 4, NOTE_B3, 4, NOTE_CS4, 8, NOTE_D4, 4, REST, 8, NOTE_AS4, 1, NOTE_CS4, 1, 
+  NOTE_D4, 2, NOTE_A3, 2, NOTE_FS4, 2, REST, 2, NOTE_D4, 4, NOTE_B3, 4, NOTE_CS4, 8, NOTE_D4, 4, REST, 8, 
+  NOTE_D4, 4, NOTE_B3, 4, NOTE_CS4, 8, NOTE_D4, 4, REST, 8, NOTE_AS3, 1, NOTE_CS4, 1, 
   NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 8, NOTE_D4, 4, NOTE_D4, -4, NOTE_CS4, 4, REST, 4, NOTE_CS4, 4, REST, 4,
   NOTE_CS4, 4, NOTE_CS4, 8, NOTE_CS4, 4, NOTE_CS4, 4, NOTE_CS4, 8, NOTE_D4, 2, NOTE_B3, 2,
   NOTE_D4, 4, NOTE_D4, 4, NOTE_D4, 8, NOTE_CS4, -4, NOTE_B3, -1, NOTE_B3, 4, NOTE_CS4, 4, NOTE_D4, 4, NOTE_CS4, 4, NOTE_B3, 4, NOTE_D4, 4,
   NOTE_CS4, 4, NOTE_CS4, 8, NOTE_CS4, -4, NOTE_D4, 8, NOTE_D4, 2, REST, 8, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_FS4, -2, 
-  NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_E4, -2, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_E4, -2, NOTE_B3, 8, NOTE_A4, 8, NOTE_B3, 8, NOTE_FS4, -1, 
+  NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_E4, -2, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_E4, -2, NOTE_B3, 8, NOTE_A4, 8, NOTE_B3, 8, NOTE_FS4, -1
+  };
 
-  NOTE_E3, -2 // Last note is cut off
+// https://musescore.com/user/8852331/scores/3739996
+int songSpongebobMedley[] = {
+// Theme Song
+NOTE_D4, 12, NOTE_E4, 12, NOTE_D4, 12, NOTE_B3, 12, NOTE_G3, 12, NOTE_B3, 12, 
+NOTE_D4, 12, NOTE_E4, 12, NOTE_D4, 12, NOTE_B3, 4, NOTE_G4, 4, NOTE_D4, 4, NOTE_B3, 4, NOTE_G3, 4, 
+NOTE_G4, 12, NOTE_A4, 12, NOTE_G4, 12, NOTE_E4, 12, NOTE_C4, 12, NOTE_E4, 12, 
+NOTE_G4, 12, NOTE_A4, 12, NOTE_G4, 12, NOTE_E4, 4, NOTE_C5, 4, NOTE_G4, 4, NOTE_E4, 4, NOTE_C4, 4, 
+// Repeat
+NOTE_D4, 12, NOTE_E4, 12, NOTE_D4, 12, NOTE_B3, 12, NOTE_G3, 12, NOTE_B3, 12, 
+NOTE_D4, 12, NOTE_E4, 12, NOTE_D4, 12, NOTE_B3, 4, NOTE_G4, 4, NOTE_D4, 4, NOTE_B3, 4, NOTE_G3, 4, 
+NOTE_G4, 12, NOTE_A4, 12, NOTE_G4, 12, NOTE_E4, 12, NOTE_C4, 12, NOTE_E4, 12, 
+NOTE_G4, 12, NOTE_A4, 12, NOTE_G4, 12, NOTE_E4, 4, NOTE_C5, 4, NOTE_G4, 4, NOTE_E4, 4, NOTE_C4, 4, 
+// Continue
+NOTE_G4, 4, NOTE_E4, 4, NOTE_D4, 4, NOTE_B3, 4, NOTE_G4, 4, NOTE_E4, 4, NOTE_D4, 4, NOTE_B3, 4,
+NOTE_G4, 4, NOTE_E4, 4, NOTE_D4, 4, NOTE_B3, 4, NOTE_D4, -8, NOTE_D4, 16, NOTE_E4, 2, NOTE_FS4, 4, 
+NOTE_G4, -8, NOTE_G4, 16, NOTE_FS4, 12, NOTE_G4, 12, NOTE_FS4, 12, NOTE_E4, 12, NOTE_FS4, 12, NOTE_E4, 12, 
+NOTE_D4, 12, NOTE_E4, 12, NOTE_D4, 12, NOTE_C4, 12, NOTE_D4, 12, NOTE_C4, 12, 
+NOTE_B3, 12, NOTE_C4, 12, NOTE_B3, 12, NOTE_A3, 12, NOTE_B3, 12, NOTE_A3, 12, NOTE_G3, 4, 
+NOTE_G4, 12, NOTE_A4, 12, NOTE_B4, 12, NOTE_A4, -8, NOTE_B4, 16, NOTE_G4, -8, NOTE_D4, 16, NOTE_G4, 4, REST, 2,
+
+// F.U.N. Song
+NOTE_C4, 8, NOTE_C4, 4, NOTE_D4, 8, NOTE_E4, 4, NOTE_C4, 4, NOTE_A3, 8, NOTE_A3, 4, NOTE_B3, 8, NOTE_C4, 4, NOTE_D4, 4, 
+NOTE_C4, 8, NOTE_C4, 4, NOTE_D4, 8, NOTE_E4, 4, NOTE_G4, 4, NOTE_D4, 4, NOTE_G4, -8, NOTE_A4, 16, NOTE_G4, -8, NOTE_F4, 16, NOTE_E4, -8, NOTE_D4, 16,
+NOTE_C4, 4, NOTE_C4, -8, NOTE_D4, 16, NOTE_E4, -8, NOTE_D4, 16, NOTE_C4, 4, NOTE_F4, -8, NOTE_F4, 16, NOTE_F4, -8, NOTE_G4, 16, 
+NOTE_A4, 4, NOTE_A4, 4, NOTE_G4, 8, NOTE_G4, 4, NOTE_A4, 8, NOTE_E4, 4, NOTE_D4, 4, NOTE_C4, 4, REST, -2,
+// Repeat
+NOTE_C4, 8, NOTE_C4, 4, NOTE_D4, 8, NOTE_E4, 4, NOTE_C4, 4, NOTE_A3, 8, NOTE_A3, 4, NOTE_B3, 8, NOTE_C4, 4, NOTE_D4, 4, 
+NOTE_C4, 8, NOTE_C4, 4, NOTE_D4, 8, NOTE_E4, 4, NOTE_G4, 4, NOTE_D4, 4, NOTE_G4, -8, NOTE_A4, 16, NOTE_G4, -8, NOTE_F4, 16, NOTE_E4, -8, NOTE_D4, 16,
+NOTE_C4, 4, NOTE_C4, -8, NOTE_D4, 16, NOTE_E4, -8, NOTE_D4, 16, NOTE_C4, 4, NOTE_F4, -8, NOTE_F4, 16, NOTE_F4, -8, NOTE_G4, 16, 
+NOTE_A4, 4, NOTE_A4, 4, NOTE_G4, 8, NOTE_G4, 4, NOTE_A4, 8, NOTE_E4, 4, NOTE_D4, 4, NOTE_C4, 4, REST, -2,
+
+// Krusty Krab Theme (Drunken Sailor)
+NOTE_A4, 8, NOTE_A4, 16, NOTE_A4, 16, NOTE_A4, 8, NOTE_A4, 16, NOTE_A4, 16, NOTE_A4, 8, NOTE_D4, 8, NOTE_F4, 8, NOTE_A4, 8, 
+NOTE_G4, 8, NOTE_G4, 16, NOTE_G4, 16, NOTE_G4, 8, NOTE_G4, 16, NOTE_G4, 16, NOTE_G4, 8, NOTE_C4, 8, NOTE_E4, 8, NOTE_G4, 8, 
+NOTE_A4, 8, NOTE_A4, 16, NOTE_A4, 16, NOTE_A4, 8, NOTE_A4, 16, NOTE_A4, 16, NOTE_A4, 8, NOTE_B4, 8, NOTE_C5, 8, NOTE_D5, 8, 
+NOTE_C5, 8, NOTE_A4, 8, NOTE_G4, 8, NOTE_E4, 8, NOTE_D4, 4, NOTE_D4, 4,
+// Repeat
+NOTE_A4, 8, NOTE_A4, 16, NOTE_A4, 16, NOTE_A4, 8, NOTE_A4, 16, NOTE_A4, 16, NOTE_A4, 8, NOTE_D4, 8, NOTE_F4, 8, NOTE_A4, 8, 
+NOTE_G4, 8, NOTE_G4, 16, NOTE_G4, 16, NOTE_G4, 8, NOTE_G4, 16, NOTE_G4, 16, NOTE_G4, 8, NOTE_C4, 8, NOTE_E4, 8, NOTE_G4, 8, 
+NOTE_A4, 8, NOTE_A4, 16, NOTE_A4, 16, NOTE_A4, 8, NOTE_A4, 16, NOTE_A4, 16, NOTE_A4, 8, NOTE_B4, 8, NOTE_C5, 8, NOTE_D5, 8, 
+NOTE_C5, 8, NOTE_A4, 8, NOTE_G4, 8, NOTE_E4, 8, NOTE_D4, 2,
+
+// Smallest Violin Song (Woe is Me)
+NOTE_F4, 32, NOTE_AS3, 32, NOTE_DS4, 32, NOTE_F4, 32, REST, -4, NOTE_F5, 32, NOTE_AS4, 32, NOTE_DS5, 32, NOTE_F5, 32, REST, -4, 
+NOTE_F6, 32, NOTE_AS5, 32, NOTE_DS6, 32, NOTE_F6, 32, REST, -4, REST, 2, NOTE_G4, 2, NOTE_C4, 2, NOTE_GS4, -4, NOTE_G4, 8, NOTE_F4, 4, NOTE_DS4, 4,
+NOTE_D4, 4, NOTE_AS3, 4, NOTE_AS4, 4, NOTE_GS4, 4, NOTE_G4, -4, REST, -4, 
+NOTE_DS4, 8, NOTE_D4, -4, NOTE_C4, 2,
+
+// Sweet Victory
+NOTE_DS4, -8, NOTE_D4, -8, NOTE_AS3, 8, NOTE_C4, 2, NOTE_DS4, -8, NOTE_D4, -8, NOTE_AS3, 8, NOTE_C4, 2, NOTE_DS4, -8, NOTE_D4, -8, NOTE_AS3, 8, NOTE_C4, 2, 
+REST, 2, NOTE_C4, -4, NOTE_G3, 8, NOTE_AS3, 8, NOTE_C4, 4, NOTE_C4, 2, REST, 8, REST, 1, 
+REST, 4, NOTE_D4, 8, NOTE_DS4, 8, NOTE_F4, 4, NOTE_DS4, 8, NOTE_D4, 8, NOTE_D4, 8, NOTE_AS3, 8, NOTE_C4, 4, REST, 8, NOTE_C4, 8, NOTE_DS4, -8, NOTE_F4, 16,
+NOTE_F4, 8, NOTE_DS4, 8, NOTE_C4, 4, REST, -1, NOTE_D4, 8, NOTE_DS4, 8, NOTE_F4, 4, NOTE_DS4, 8, NOTE_D4, 8, REST, 8, NOTE_G4, 8, NOTE_G4, 2, REST, 1,
+NOTE_G4, -8, NOTE_F4, -8, NOTE_DS4, 8, NOTE_F4, 2, NOTE_F4, -8, NOTE_G4, -8, NOTE_GS4, 8, NOTE_G4, 2, NOTE_G4, -8, NOTE_F4, -8, NOTE_DS4, 8, NOTE_F4, 2, 
+NOTE_G4, 2, NOTE_F4, -4, NOTE_DS4, 8, NOTE_DS4, 2, NOTE_DS4, 8, NOTE_F4, -4, NOTE_G4, 1, NOTE_G4, -2, NOTE_G4, 4, NOTE_F4, 4, NOTE_DS4, 8, NOTE_DS4, 2, REST, 8,
+REST, 2, NOTE_DS4, 8, NOTE_F4, -4, NOTE_G4, 1, NOTE_G4, -2, NOTE_G4, 4, NOTE_F4, 4, NOTE_DS4, 8, NOTE_DS4, 2, REST, 8, REST, 2,
+NOTE_AS3, 6, NOTE_C4, 6, NOTE_DS4, 6, NOTE_G4, 1,
+
+// Campfire Song Song
+NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_C4, 8, NOTE_D4, 8, NOTE_C4, 8, NOTE_C4, 8, NOTE_A3, 8, NOTE_C4, 2, 
+NOTE_G4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_F4, 8, NOTE_F4, 8, NOTE_F4, 8, NOTE_G4, 8, NOTE_E4, 4,
+NOTE_D4, 8, NOTE_C4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_D4, 8, NOTE_C4, 8, NOTE_D4, 8, NOTE_C4, 16, NOTE_C4, 16, 
+NOTE_C4, 8, NOTE_A3, 8, NOTE_C4, 8, REST, 16, NOTE_G3, 16, NOTE_A3, 8, NOTE_G3, 8, NOTE_E4, 8, NOTE_D4, 4, NOTE_C4, 8, NOTE_E4, 8, NOTE_D4, 4, NOTE_C4, 8,
+NOTE_D4, 4, NOTE_G3, 4, NOTE_A3, 4, NOTE_B3, 4,
+// Repeat
+NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_C4, 8, NOTE_D4, 8, NOTE_C4, 8, NOTE_C4, 8, NOTE_A3, 8, NOTE_C4, 2, 
+NOTE_G4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_F4, 8, NOTE_F4, 8, NOTE_F4, 8, NOTE_G4, 8, NOTE_E4, 4,
+NOTE_D4, 8, NOTE_C4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_D4, 8, NOTE_C4, 8, NOTE_D4, 8, NOTE_C4, 16, NOTE_C4, 16, 
+NOTE_C4, 8, NOTE_A3, 8, NOTE_C4, 8, REST, 16, NOTE_G3, 16, NOTE_A3, 8, NOTE_G3, 8, NOTE_E4, 8, NOTE_D4, 4, NOTE_C4, 8, NOTE_E4, 8, NOTE_D4, 4, NOTE_C4, 8,
+NOTE_D4, 4, NOTE_G3, 4, NOTE_A3, 4, NOTE_B3, 4,
+
+// Striped Sweater
+NOTE_G4, -2, NOTE_G4, 8, NOTE_G4, 8, NOTE_A3, 8, NOTE_G4, 8, NOTE_F4, 4, NOTE_G4, 8, NOTE_B4, 8, NOTE_G4, 8, NOTE_B4, 8, 
+NOTE_C5, 4, NOTE_C5, 8, NOTE_C5, 4, NOTE_C5, 8, NOTE_C5, 4, NOTE_GS4, 4, NOTE_G4, 4, REST, 2, 
+NOTE_B3, 8, NOTE_D3, 8, NOTE_E3, 8, NOTE_G3, 8, NOTE_B4, 8, NOTE_D4, 8, NOTE_E4, 8, NOTE_G4, 8, NOTE_B5, 8, NOTE_D5, 8, NOTE_E5, 8, NOTE_G5, 8, REST, 2,
+NOTE_B4, 8, NOTE_C5, 4, NOTE_C5, 4, NOTE_B4, 8, NOTE_C5, 4, NOTE_B4, 8, NOTE_C5, 4, NOTE_C5, 8, NOTE_E4, -4, NOTE_E4, 8, NOTE_G4, 4, NOTE_A4, 8, NOTE_B4, 2, 
+REST, 8, NOTE_D4, 4, NOTE_C4, 4, NOTE_B3, 4, 
+
+// Ripped Pants
+NOTE_C4, 4, NOTE_C4, 8, NOTE_C4, 8, NOTE_C4, 8, NOTE_C4, 8, NOTE_D4, 8, NOTE_E4, 8, NOTE_D4, 8, NOTE_C4, 4, NOTE_C4, 2, REST, 8, 
+NOTE_A3, 4, NOTE_D4, 4, NOTE_E4, 4, NOTE_F4, 4, NOTE_E4, 8, NOTE_D4, 4, NOTE_D4, 4, REST, 8, NOTE_C4, 8, NOTE_B3, 8, NOTE_B3, 4, NOTE_A4, 4, NOTE_G4, 4, NOTE_F4, 8,
+NOTE_F4, 8, NOTE_E4, 4, NOTE_D4, 8, NOTE_CS4, 4, NOTE_D4, 8, NOTE_E4, 8, NOTE_F4, 4, NOTE_A3, 4, NOTE_A3, 4, NOTE_D4, 4, 
+REST, 4, NOTE_C4, 4, NOTE_B3, 4, NOTE_A3, 4, NOTE_G3, 1,
+
+// Goofy Goober
+NOTE_G4, -4, NOTE_G4, 8, NOTE_G4, 4, NOTE_A4, 4, NOTE_G4, 4, NOTE_E4, 4, NOTE_C4, 2, NOTE_C5, 4, NOTE_C5, 4, NOTE_C5, 4, NOTE_D5, 4, NOTE_C5, 4, NOTE_A4, 4,
+NOTE_F4, 2, NOTE_C3, 8, NOTE_F3, 8, NOTE_A3, 8, NOTE_C4, 8, NOTE_B3, 2, 
+
+// Credits Theme
+NOTE_B3, -8, NOTE_AS3, 16, NOTE_B3, -8, NOTE_CS4, 16, NOTE_B3, 2, NOTE_E3, 4, NOTE_GS3, 4, NOTE_B3, 4, NOTE_GS3, 4, 
+NOTE_B3, -8, NOTE_AS3, 16, NOTE_B3, -8, NOTE_CS4, 16, NOTE_B3, 2, NOTE_E3, 4, NOTE_GS3, 4, NOTE_B3, 4, NOTE_GS3, 4, 
+NOTE_E3, 4, NOTE_B3, 4, NOTE_B3, 2, NOTE_FS4, -8, NOTE_GS4, 16, NOTE_FS4, -8, NOTE_GS4, 16, NOTE_FS4, 2, 
+NOTE_E3, 4, NOTE_B3, 4, NOTE_B3, 2, NOTE_G4, -8, NOTE_FS4, 16, NOTE_G4, -8, NOTE_FS4, 16, NOTE_G4, 2, 
+NOTE_B3, -8, NOTE_AS3, 16, NOTE_B3, -8, NOTE_CS4, 16, NOTE_B3, 2, 
+NOTE_B3, -8, NOTE_AS3, 16, NOTE_B3, -8, NOTE_CS4, 16, NOTE_B3, 4, NOTE_DS4, 4,
+
+// Police Theme (The Mob)
+NOTE_E3, 8, NOTE_E3, 8, NOTE_G3, 8, NOTE_E3, 8, NOTE_A3, 8, NOTE_G3, 8, NOTE_E3, 4, NOTE_E4, 8,
 };
 
 const int LED_NUM = 10;
@@ -468,10 +556,12 @@ unsigned long previousLEDMillis;
 
 unsigned long lastDriveMessage;
 
-int tempo = 144;
-int songIndex = -1;
+int tempo = 120;
+float tempoMultiplier = 1;
+int songIndex = 8;
 bool repeatSong = false;
-unsigned long previousSongMillis;
+unsigned long targetNoteMillis;
+int currentNoteLength;
 int noteIndex = 0;
 int buzzerPin = D2;
 
@@ -497,7 +587,8 @@ SONG songs[] = {
   {songTakeOnMe, NUMELEMENTS(songTakeOnMe)},
   {songPanther, NUMELEMENTS(songPanther)},
   {songMario, NUMELEMENTS(songMario)},
-  {songDragonBallSuper, NUMELEMENTS(songDragonBallSuper)}
+  {songDragonBallSuper, NUMELEMENTS(songDragonBallSuper)},
+  {songSpongebobMedley, NUMELEMENTS(songSpongebobMedley)}
 };
 
 void ShowInfo(void){
@@ -609,6 +700,7 @@ void setup(){
     repeatSong = request->getParam(1)->value().toInt() == 1;
     songIndex = request->getParam(2)->value().toInt();
     noteIndex = 0;
+    tempoMultiplier = 1;
     noTone(buzzerPin);
     pinMode(D2, INPUT);
     request->send_P(200, "text/plain", String("Recieved").c_str());
@@ -675,7 +767,7 @@ void setup(){
     Serial.println("MDNS responder failed to start");
   }
 
-  previousSongMillis = millis();
+  targetNoteMillis = millis();
 }
 
 int getDuration(int index) {
@@ -690,6 +782,8 @@ int getDuration(int index) {
     noteDuration = (wholenote) / abs(divider);
     noteDuration *= 1.5; // increases the duration in half for dotted notes
   }
+  Serial.println(index);
+  Serial.println(noteDuration);
   return noteDuration;
 }
 
@@ -720,22 +814,24 @@ void loop(){
 
   // Music Todo: 
   if (songIndex != -1) {
-    if (noteIndex == 0 || previousSongMillis + getDuration(noteIndex * 2 - 1) < currentMillis) {
-      tone(buzzerPin, songs[songIndex].notes[noteIndex * 2], getDuration(noteIndex * 2 + 1) * 0.9);
+    if (noteIndex == 0 || targetNoteMillis < currentMillis ) {
+      if (songs[songIndex].notes[noteIndex * 2] == TEMPO) {
+        tempoMultiplier = getDuration(noteIndex * 2 + 1) / 100.0;
+        noteIndex++;
+      }
+      int duration = getDuration(noteIndex * 2 + 1);
+      tone(buzzerPin, songs[songIndex].notes[noteIndex * 2], duration * 0.9);
       noteIndex++;
       // Todo: prevent from cutting off last note
-      if (noteIndex >= songs[songIndex].numNotes / 2) {
-        Serial.println("ended");
-          Serial.println(songIndex);
-          Serial.println(noteIndex);
-          Serial.println(songs[songIndex].numNotes);
+      if (noteIndex > songs[songIndex].numNotes / 2) {
+        tempoMultiplier = 1;
         noteIndex = 0;
         if (!repeatSong) {
           songIndex = -1;
           pinMode(D2, INPUT);
         }
       }
-      previousSongMillis = currentMillis;
+      targetNoteMillis = currentMillis + duration;
     }
   }  
 
