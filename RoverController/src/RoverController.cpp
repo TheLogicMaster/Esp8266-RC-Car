@@ -5,6 +5,9 @@
 #include <vector>
 #include <Adafruit_NeoPixel.h>
 #include <DNSServer.h>
+#include <RH_ASK.h>
+#include <SPI.h>
+#include <RHReliableDatagram.h>
 
 #define NUMELEMENTS(x) (sizeof(x) / sizeof(x[0]))
 
@@ -546,6 +549,30 @@ NOTE_B3, -8, NOTE_AS3, 16, NOTE_B3, -8, NOTE_CS4, 16, NOTE_B3, 4, NOTE_DS4, 4,
 NOTE_E3, 8, NOTE_E3, 8, NOTE_G3, 8, NOTE_E3, 8, NOTE_A3, 8, NOTE_G3, 8, NOTE_E3, 4, NOTE_E4, 8,
 };
 
+int songPacman[] = {
+
+  // Pacman
+  // Score available at https://musescore.com/user/85429/scores/107109
+  NOTE_B4, 16, NOTE_B5, 16, NOTE_FS5, 16, NOTE_DS5, 16, //1
+  NOTE_B5, 32, NOTE_FS5, -16, NOTE_DS5, 8, NOTE_C5, 16,
+  NOTE_C6, 16, NOTE_G6, 16, NOTE_E6, 16, NOTE_C6, 32, NOTE_G6, -16, NOTE_E6, 8,
+
+  NOTE_B4, 16,  NOTE_B5, 16,  NOTE_FS5, 16,   NOTE_DS5, 16,  NOTE_B5, 32,  //2
+  NOTE_FS5, -16, NOTE_DS5, 8,  NOTE_DS5, 32, NOTE_E5, 32,  NOTE_F5, 32,
+  NOTE_F5, 32,  NOTE_FS5, 32,  NOTE_G5, 32,  NOTE_G5, 32, NOTE_GS5, 32,  NOTE_A5, 16, NOTE_B5, 8
+};
+
+int songNokia[] = {
+
+  // Nokia Ringtone 
+  // Score available at https://musescore.com/user/29944637/scores/5266155
+  
+  NOTE_E5, 8, NOTE_D5, 8, NOTE_FS4, 4, NOTE_GS4, 4, 
+  NOTE_CS5, 8, NOTE_B4, 8, NOTE_D4, 4, NOTE_E4, 4, 
+  NOTE_B4, 8, NOTE_A4, 8, NOTE_CS4, 4, NOTE_E4, 4,
+  NOTE_A4, 2, 
+};
+
 const int LED_NUM = 10;
 Adafruit_NeoPixel strip(LED_NUM, D3, NEO_GRB + NEO_KHZ800);
 int rgbMode = 0;
@@ -559,7 +586,7 @@ unsigned long lastDriveMessage;
 int tempo = 120;
 float tempoMultiplier = 1;
 int songIndex = 8;
-bool repeatSong = false;
+bool repeatSong = true;
 unsigned long targetNoteMillis;
 int currentNoteLength;
 int noteIndex = 0;
@@ -569,17 +596,21 @@ IPAddress apIP(192, 168, 4, 1);
 IPAddress netMsk(255, 255, 255, 0); 
 const char* ssid     = "Super Cool Rover";
 const char* password = "123456789";
-FSInfo fs_info;
-DNSServer dnsServer;
+//FSInfo fs_info;
+//DNSServer dnsServer;
 AsyncWebServer server(80);
-char bufferTemp[300];
+//char bufferTemp[300];
+
+//RH_ASK rfDriver(2000, 11, 12, 10, false);
+//RHReliableDatagram rfManager(rfDriver, 1);
+//uint8_t rfBuffer[RH_ASK_MAX_MESSAGE_LEN];
 
 struct SONG {
   int *notes;
   uint numNotes;
 };
 
-SONG songs[] = {
+const SONG songs[] = {
   {songPachabel, NUMELEMENTS(songPachabel)},
   {songMii, NUMELEMENTS(songMii)},
   {songTetris, NUMELEMENTS(songTetris)},
@@ -588,10 +619,12 @@ SONG songs[] = {
   {songPanther, NUMELEMENTS(songPanther)},
   {songMario, NUMELEMENTS(songMario)},
   {songDragonBallSuper, NUMELEMENTS(songDragonBallSuper)},
-  {songSpongebobMedley, NUMELEMENTS(songSpongebobMedley)}
+  {songSpongebobMedley, NUMELEMENTS(songSpongebobMedley)},
+  {songPacman, NUMELEMENTS(songPacman)},
+  {songNokia, NUMELEMENTS(songNokia)}
 };
 
-void ShowInfo(void){
+/*void ShowInfo(void){
  
   SPIFFS.info(fs_info);
   sprintf(bufferTemp,  "Total Bytes:     %d", fs_info.totalBytes);
@@ -623,7 +656,7 @@ void ShowDIR(void){
   }
   Serial.println("--------------------------------");
   Serial.println("");
-}
+}*/
 
 void setAllLEDs(uint8 r, uint8 g, uint8 b) {
   for (int i = 0; i < LED_NUM; i++)
@@ -632,7 +665,7 @@ void setAllLEDs(uint8 r, uint8 g, uint8 b) {
 }
 
 void setup(){
-  pinMode(D5, OUTPUT); 
+  pinMode(D4, OUTPUT); 
   pinMode(D6, OUTPUT); 
   pinMode(D7, OUTPUT); 
   pinMode(D8, OUTPUT); 
@@ -648,8 +681,8 @@ void setup(){
   WiFi.softAP(ssid);
   //WiFi.softAP(ssid, password);
 
-  dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-  dnsServer.start(53, "*", apIP);
+  //dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+  //dnsServer.start(53, "*", apIP);
   
   delay(500);
   IPAddress IP = WiFi.softAPIP();
@@ -659,8 +692,8 @@ void setup(){
   // Print ESP8266 Local IP Address
   Serial.println(WiFi.localIP());
   SPIFFS.begin(); 
-  ShowInfo();
-  ShowDIR();
+  //ShowInfo();
+  //ShowDIR();
   // Route for root / web page
   server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
 
@@ -706,34 +739,31 @@ void setup(){
     request->send_P(200, "text/plain", String("Recieved").c_str());
   });
 
-  server.on("/data/left", HTTP_POST, [](AsyncWebServerRequest *request){
+  server.on("/data", HTTP_POST, [](AsyncWebServerRequest *request){
     lastDriveMessage = millis();
     if (request->getParam(1)->value().toInt() == 0) {
-        analogWrite(D5, request->getParam(0)->value().toFloat() / 100.0 * 1023.0);
-        analogWrite(D6, 0);
-      } else {
-        analogWrite(D6, request->getParam(0)->value().toFloat() / 100.0 * 1023.0);
-        analogWrite(D5, 0);
-      }
-    request->send_P(200, "text/plain", String("Recieved").c_str());
-  });
-  server.on("/data/right", HTTP_POST, [](AsyncWebServerRequest *request){
-    lastDriveMessage = millis();
-      if (request->getParam(1)->value().toInt() == 0) {
         analogWrite(D7, request->getParam(0)->value().toFloat() / 100.0 * 1023.0);
         analogWrite(D8, 0);
       } else {
         analogWrite(D8, request->getParam(0)->value().toFloat() / 100.0 * 1023.0);
         analogWrite(D7, 0);
       }
+      if (request->getParam(3)->value().toInt() == 0) {
+        analogWrite(D4, request->getParam(2)->value().toFloat() / 100.0 * 1023.0);
+        analogWrite(D6, 0);
+      } else {
+        analogWrite(D6, request->getParam(2)->value().toFloat() / 100.0 * 1023.0);
+        analogWrite(D4, 0);
+      }
     request->send_P(200, "text/plain", String("Recieved").c_str());
   });
-  server.on("/generate_204", HTTP_POST, [](AsyncWebServerRequest *request){
+
+  /*server.on("/generate_204", HTTP_POST, [](AsyncWebServerRequest *request){
     request->redirect("http://192.168.4.1");
   });
   server.on("/fwlink", HTTP_POST, [](AsyncWebServerRequest *request){
     request->redirect("http://192.168.4.1");
-  });
+  });*/
   /*server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html, processor);
   });
@@ -757,7 +787,7 @@ void setup(){
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
   server.begin();
 
-  if (MDNS.begin("rover")) {
+  /*if (MDNS.begin("rover")) {
     MDNS.addService("http", "tcp", 80);
     Serial.println("MDNS responder started");
     Serial.print("You can now connect to http://");
@@ -768,6 +798,10 @@ void setup(){
   }
 
   targetNoteMillis = millis();
+
+  if (!rfManager.init())
+         Serial.println("Failed to initialize rf manager");
+         */
 }
 
 int getDuration(int index) {
@@ -782,17 +816,32 @@ int getDuration(int index) {
     noteDuration = (wholenote) / abs(divider);
     noteDuration *= 1.5; // increases the duration in half for dotted notes
   }
-  Serial.println(index);
-  Serial.println(noteDuration);
+  //Serial.println(index);
+  //Serial.println(noteDuration);
   return noteDuration;
 }
 
 void loop(){
+  // RF communication
+  /*if (rfManager.available()) {
+    // Wait for a message addressed to us from the client
+    uint8_t len = sizeof(rfBuffer);
+    uint8_t from;
+    if (rfManager.recvfrom(rfBuffer, &len, &from)) {
+      Serial.print("got request from : 0x");
+      Serial.print(from, HEX);
+      Serial.print(": ");
+      Serial.println((char*)rfBuffer);
+      // Send a reply back to the originator client
+      //if (!rfManager.sendtoWait(data, sizeof(data), from))
+      //  Serial.println("sendtoWait failed");
+    }
+  }*/
   unsigned long currentMillis = millis();
 
   // Watchdog
   if (lastDriveMessage + 1500 < currentMillis) {
-    analogWrite(D5, 0);
+    analogWrite(D4, 0);
     analogWrite(D6, 0);
     analogWrite(D7, 0);
     analogWrite(D8, 0);
@@ -835,5 +884,5 @@ void loop(){
     }
   }  
 
-  dnsServer.processNextRequest();
+  //dnsServer.processNextRequest();
 }

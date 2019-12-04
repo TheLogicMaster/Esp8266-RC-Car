@@ -48,7 +48,9 @@ module.exports = function (ctx) {
       // Quasar plugins
       plugins: []
     },
-
+    bin: {
+      linuxAndroidStudio: "/home/justin/.local/share/JetBrains/Toolbox/apps/AndroidStudio/ch-0/191.5977832/bin/studio.sh"
+    },
     // https://quasar.dev/quasar-cli/cli-documentation/supporting-ie
     supportIE: false,
 
