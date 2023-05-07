@@ -15,7 +15,7 @@
     "@quasar/extras": "^1.0.0",
     "axios": "^0.18.1",
     "nipplejs": "^0.8.3",
-    "qs": "^6.9.1",
+    "qs": "^6.9.7",
     "quasar": "^1.0.0"
   },
   "devDependencies": {
